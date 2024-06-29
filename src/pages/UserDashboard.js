@@ -35,7 +35,11 @@ const UserDashboard = () => {
   };
 
   const  predictedRemainingLifetime=userData.predictedLifespan-userData.age
-  const predictedYearOfDeath=2024+predictedRemainingLifetime
+  const timeCaughtVirus = new Date(userData.timeCaughtVirus);
+  const predictedYearOfDeath = timeCaughtVirus.getFullYear() + predictedRemainingLifetime;
+
+  // const predictedYearOfDeath = userData.getTimeCaughtVirus().getYear() + predictedRemainingLifetime;
+
   return (
     <div className="bg-white shadow rounded-lg p-6">
       <h2 className="text-2xl font-bold mb-4">Welcome, {userData.firstName} {userData.lastName}!</h2>
