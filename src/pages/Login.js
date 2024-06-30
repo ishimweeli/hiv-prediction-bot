@@ -1,30 +1,32 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
-import { jwtDecode } from 'jwt-decode';
+import {jwtDecode} from 'jwt-decode';
+import { Snackbar, Alert, Backdrop, CircularProgress } from '@mui/material';
 
 const Login = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [openSnackbar, setOpenSnackbar] = useState(false);
   const navigate = useNavigate();
+
+  const handleCloseSnackbar = () => {
+    setOpenSnackbar(false);
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
     setIsLoading(true);
-    console.log('Loading started'); // Debug log
 
     try {
-      console.log('Sending request to:', `${process.env.REACT_APP_API_URL}/api/auth/login`);
       const response = await axios.post(
         `${process.env.REACT_APP_API_URL}/api/auth/login`,
         { email, password },
         { withCredentials: true }
       );
-
-      console.log('Response received:', response.data); // Debug log
 
       if (response.data.token) {
         const token = response.data.token;
@@ -42,26 +44,27 @@ const Login = () => {
         }
       } else {
         setError(response.data.message || 'Login failed. Please try again.');
+        setOpenSnackbar(true);
       }
     } catch (error) {
-      console.error('Error during login:', error); // Debug log
       if (error.response) {
-        setError(error.response.data.message || 'An error occurred during login.');
+        const status = error.response.status;
+        const message = error.response.data.message || 'An error occurred.';
+        setError(`Error ${status}: ${message}`);
       } else if (error.request) {
         setError('No response from server. Please try again.');
       } else {
         setError('An error occurred. Please try again.');
       }
+      setOpenSnackbar(true);
     } finally {
       setIsLoading(false);
-      console.log('Loading finished'); // Debug log
     }
   };
 
   return (
     <div className="max-w-md mx-auto bg-white shadow-md rounded px-8 pt-6 pb-8 mb-4">
       <h2 className="text-2xl font-bold mb-6 text-center">Login</h2>
-      {error && <p className="text-red-500 text-xs italic mb-4">{error}</p>}
       <form onSubmit={handleSubmit} className="space-y-6">
         <div>
           <label htmlFor="email" className="block text-gray-700 text-sm font-bold mb-2">Email</label>
@@ -90,24 +93,17 @@ const Login = () => {
           className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline"
           disabled={isLoading}
         >
-          {isLoading ? (
-            <div className="flex items-center justify-center">
-              <div className="animate-spin rounded-full h-5 w-5 border-t-2 border-b-2 border-white mr-2"></div>
-              Loading...
-            </div>
-          ) : (
-            'Login'
-          )}
+          {isLoading ? 'Logging in...' : 'Login'}
         </button>
       </form>
-      {isLoading && (
-        <div className="fixed top-0 left-0 w-full h-full flex items-center justify-center bg-black bg-opacity-50 z-50">
-          <div className="bg-white p-5 rounded-lg">
-            <div className="animate-spin rounded-full h-10 w-10 border-t-2 border-b-2 border-blue-500 mb-2"></div>
-            <p>Logging in...</p>
-          </div>
-        </div>
-      )}
+      <Snackbar open={openSnackbar} autoHideDuration={6000} onClose={handleCloseSnackbar}>
+        <Alert onClose={handleCloseSnackbar} severity="error" sx={{ width: '100%' }}>
+          {error}
+        </Alert>
+      </Snackbar>
+      <Backdrop sx={{ color: '#fff', zIndex: (theme) => theme.zIndex.drawer + 1 }} open={isLoading}>
+        <CircularProgress color="inherit" />
+      </Backdrop>
     </div>
   );
 };

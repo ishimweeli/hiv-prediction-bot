@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
 import axios from 'axios';
 import { Alert, Snackbar } from '@mui/material';
 
@@ -9,73 +9,68 @@ const Loader = () => (
   </div>
 );
 
-const DateInput = ({ label, yearValue, monthValue, dayValue, onYearChange, onMonthChange, onDayChange }) => (
+const DateInput = ({ label, value, onChange, disabled }) => (
   <div>
     <label className="block text-gray-700 text-sm font-bold mb-2">{label}</label>
-    <div className="flex space-x-2">
-      <input
-        type="number"
-        value={yearValue}
-        onChange={onYearChange}
-        placeholder="YYYY"
-        min="1900"
-        max="2099"
-        className="shadow appearance-none border rounded w-1/3 py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
-      />
-      <input
-        type="number"
-        value={monthValue}
-        onChange={onMonthChange}
-        placeholder="MM"
-        min="1"
-        max="12"
-        className="shadow appearance-none border rounded w-1/3 py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
-      />
-      <input
-        type="number"
-        value={dayValue}
-        onChange={onDayChange}
-        placeholder="DD"
-        min="1"
-        max="31"
-        className="shadow appearance-none border rounded w-1/3 py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
-      />
-    </div>
+    <input
+      type="date"
+      value={value}
+      onChange={onChange}
+      disabled={disabled}
+      className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+    />
   </div>
 );
 
 const Register = () => {
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
-  const [age, setAge] = useState(18);
+  const [age, setAge] = useState(1);
   const [hivPositive, setHivPositive] = useState(false);
-  const [timeCaughtVirusYear, setTimeCaughtVirusYear] = useState('');
-  const [timeCaughtVirusMonth, setTimeCaughtVirusMonth] = useState('');
-  const [timeCaughtVirusDay, setTimeCaughtVirusDay] = useState('');
+  const [timeCaughtVirus, setTimeCaughtVirus] = useState('');
   const [onArtDrugs, setOnArtDrugs] = useState(false);
-  const [timeStartedArtYear, setTimeStartedArtYear] = useState('');
-  const [timeStartedArtMonth, setTimeStartedArtMonth] = useState('');
-  const [timeStartedArtDay, setTimeStartedArtDay] = useState('');
+  const [timeStartedArt, setTimeStartedArt] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [alertOpen, setAlertOpen] = useState(false);
   const [alertMessage, setAlertMessage] = useState('');
   const [alertSeverity, setAlertSeverity] = useState('success');
   const [isLoading, setIsLoading] = useState(false);
+  const [token, setToken] = useState('');
+
   const navigate = useNavigate();
+  const location = useLocation();
+
+  useEffect(() => {
+    const searchParams = new URLSearchParams(location.search);
+    const tokenFromUrl = searchParams.get('token');
+    if (tokenFromUrl) {
+      setToken(tokenFromUrl);
+      validateToken(tokenFromUrl);
+    } else {
+      setAlertMessage('No invitation token provided');
+      setAlertSeverity('error');
+      setAlertOpen(true);
+    }
+  }, [location]);
+
+  const validateToken = async (token) => {
+    try {
+      const response = await axios.get(`${process.env.REACT_APP_API_URL}/api/auth/validate-token/${token}`);
+      setEmail(response.data.email);
+    } catch (error) {
+      const errorMessage = error.response?.data?.error || error.response?.data || error.message || 'Invalid or expired token';
+      setAlertMessage(errorMessage);
+      setAlertSeverity('error');
+      setAlertOpen(true);
+    }
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setIsLoading(true);
 
-    const formatDate = (year, month, day) => {
-      return `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
-    };
-
-    const timeCaughtVirus = hivPositive ? formatDate(timeCaughtVirusYear, timeCaughtVirusMonth, timeCaughtVirusDay) : null;
-    const timeStartedArt = onArtDrugs ? formatDate(timeStartedArtYear, timeStartedArtMonth, timeStartedArtDay) : null;
-
-    if (timeCaughtVirus && timeStartedArt && new Date(timeStartedArt) < new Date(timeCaughtVirus)) {
+    if (hivPositive && timeCaughtVirus && onArtDrugs && timeStartedArt && new Date(timeStartedArt) < new Date(timeCaughtVirus)) {
       setAlertMessage('ART start date cannot be earlier than the date the virus was caught.');
       setAlertSeverity('error');
       setAlertOpen(true);
@@ -88,36 +83,29 @@ const Register = () => {
       lastName,
       age,
       hivPositive,
-      timeCaughtVirus,
-      onArtDrugs,
-      timeStartedArt,
+      timeCaughtVirus: hivPositive ? timeCaughtVirus : null,
+      onArtDrugs: hivPositive && onArtDrugs,
+      timeStartedArt: hivPositive && onArtDrugs ? timeStartedArt : null,
       email,
       password,
       role: 'DATA_USER',
     };
 
-    console.log("Form data before submission:", userData);
-
     try {
       const response = await axios.post(
-        `${process.env.REACT_APP_API_URL}/api/auth/register`,
+        `${process.env.REACT_APP_API_URL}/api/auth/register?token=${token}`,
         userData
       );
-      console.log(response);
-      if (response.data) {
-        setAlertMessage('Registration successful!');
-        setAlertSeverity('success');
-        setAlertOpen(true);
-        setTimeout(() => {
-          navigate('/login');
-        }, 1000);
-      } else {
-        setAlertMessage(response.data.message || 'Registration failed. Please try again.');
-        setAlertSeverity('error');
-        setAlertOpen(true);
-      }
+      const successMessage = response.data.message || 'Registration successful!';
+      setAlertMessage(successMessage);
+      setAlertSeverity('success');
+      setAlertOpen(true);
+      setTimeout(() => {
+        navigate('/login');
+      }, 3000);
     } catch (error) {
-      setAlertMessage(error.response?.data?.message || 'An error occurred during registration.');
+      const errorMessage = error.response?.data?.error || error.response?.data || error.message || 'An error occurred during registration';
+      setAlertMessage(errorMessage);
       setAlertSeverity('error');
       setAlertOpen(true);
     } finally {
@@ -165,8 +153,8 @@ const Register = () => {
             type="number"
             id="age"
             value={age}
-            onChange={(e) => setAge(Number(e.target.value))}
-            min="0"
+            onChange={(e) => setAge(Math.max(1, Number(e.target.value)))}
+            min="1"
             className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
             required
           />
@@ -177,7 +165,14 @@ const Register = () => {
             <input
               type="checkbox"
               checked={hivPositive}
-              onChange={(e) => setHivPositive(e.target.checked)}
+              onChange={(e) => {
+                setHivPositive(e.target.checked);
+                if (!e.target.checked) {
+                  setOnArtDrugs(false);
+                  setTimeCaughtVirus('');
+                  setTimeStartedArt('');
+                }
+              }}
               className="mr-2"
             />
             <span>Yes</span>
@@ -186,35 +181,34 @@ const Register = () => {
         {hivPositive && (
           <DateInput
             label="Time Caught Virus"
-            yearValue={timeCaughtVirusYear}
-            monthValue={timeCaughtVirusMonth}
-            dayValue={timeCaughtVirusDay}
-            onYearChange={(e) => setTimeCaughtVirusYear(e.target.value)}
-            onMonthChange={(e) => setTimeCaughtVirusMonth(e.target.value)}
-            onDayChange={(e) => setTimeCaughtVirusDay(e.target.value)}
+            value={timeCaughtVirus}
+            onChange={(e) => setTimeCaughtVirus(e.target.value)}
           />
         )}
-        <div>
-          <label className="block text-gray-700 text-sm font-bold mb-2">On ART Drugs</label>
-          <div className="flex items-center">
-            <input
-              type="checkbox"
-              checked={onArtDrugs}
-              onChange={(e) => setOnArtDrugs(e.target.checked)}
-              className="mr-2"
-            />
-            <span>Yes</span>
+        {hivPositive && (
+          <div>
+            <label className="block text-gray-700 text-sm font-bold mb-2">On ART Drugs</label>
+            <div className="flex items-center">
+              <input
+                type="checkbox"
+                checked={onArtDrugs}
+                onChange={(e) => {
+                  setOnArtDrugs(e.target.checked);
+                  if (!e.target.checked) {
+                    setTimeStartedArt('');
+                  }
+                }}
+                className="mr-2"
+              />
+              <span>Yes</span>
+            </div>
           </div>
-        </div>
-        {onArtDrugs && (
+        )}
+        {hivPositive && onArtDrugs && (
           <DateInput
             label="Time Started ART"
-            yearValue={timeStartedArtYear}
-            monthValue={timeStartedArtMonth}
-            dayValue={timeStartedArtDay}
-            onYearChange={(e) => setTimeStartedArtYear(e.target.value)}
-            onMonthChange={(e) => setTimeStartedArtMonth(e.target.value)}
-            onDayChange={(e) => setTimeStartedArtDay(e.target.value)}
+            value={timeStartedArt}
+            onChange={(e) => setTimeStartedArt(e.target.value)}
           />
         )}
         <div>
@@ -223,9 +217,9 @@ const Register = () => {
             type="email"
             id="email"
             value={email}
-            onChange={(e) => setEmail(e.target.value)}
             className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
             required
+            readOnly
           />
         </div>
         <div>
@@ -248,8 +242,8 @@ const Register = () => {
         </button>
       </form>
       <Snackbar open={alertOpen} autoHideDuration={6000} onClose={handleCloseAlert}>
-        <Alert onClose={handleCloseAlert} severity={alertSeverity} sx={{ width: '100%' }}>
-          {alertMessage}
+        <Alert onClose={handleCloseAlert} severity={alertSeverity}>
+          {typeof alertMessage === 'string' ? alertMessage : JSON.stringify(alertMessage)}
         </Alert>
       </Snackbar>
     </div>
