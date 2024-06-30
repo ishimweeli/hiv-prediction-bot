@@ -35,8 +35,8 @@ const UserDashboard = () => {
   };
 
   const  predictedRemainingLifetime=userData.predictedLifespan-userData.age
-  const timeCaughtVirus = new Date(userData.timeCaughtVirus);
-  const predictedYearOfDeath = timeCaughtVirus.getFullYear() + predictedRemainingLifetime;
+  // const timeCaughtVirus = new Date(userData.timeCaughtVirus);
+  const predictedYearOfDeath = 2024 + predictedRemainingLifetime;
 
   // const predictedYearOfDeath = userData.getTimeCaughtVirus().getYear() + predictedRemainingLifetime;
 
