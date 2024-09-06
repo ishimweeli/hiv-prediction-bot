@@ -7,6 +7,20 @@ import Login from './pages/Login';
 import Register from './pages/Register';
 import AdminDashboard from './pages/AdminDashboard';
 import UserDashboard from './pages/UserDashboard';
+import LandingPage from './pages/home';
+import BookingProcess from './components/BookingProcess';
+
+import { createTheme, ThemeProvider } from '@mui/material/styles';
+
+const theme = createTheme({
+  palette: {
+    primary: { main: '#1E88E5' },  // Blue
+    secondary: { main: '#43A047' }, // Green
+    error: { main: '#E53935' },     // Red
+  },
+});
+
+
 
 function App() {
   const isAuthenticated = !!localStorage.getItem('token');
@@ -14,11 +28,15 @@ function App() {
 
   return (
     <Router>
-      <Layout>
+      {/* <Layout> */}
         <Routes>
-          <Route path="/login" element={isAuthenticated ? <Navigate to="/" /> : <Login />} />
+          <Route path="/login" element={isAuthenticated ? <Navigate to="/user" /> : <Login />} />
+          <Route path="/" element={isAuthenticated ? <Navigate to="/user" /> : <LandingPage />} />
+          <Route path="/booking" element={isAuthenticated ? <Navigate to="/user" /> : <BookingProcess />} />
+
+
           
-          <Route path="/register" element={isAuthenticated ? <Navigate to="/" /> : <Register />} />
+          <Route path="/register" element={isAuthenticated ? <Navigate to="/user" /> : <Register />} />
 
           <Route
             path="/admin"
@@ -31,13 +49,15 @@ function App() {
           <Route
             path="/dashboard"
             element={
-              <PrivateRoute isDataUser={userRole === 'DATA_USER'} isAuthenticated={isAuthenticated}>
-                <UserDashboard />
+              <PrivateRoute isDataUser={userRole === 'STYLIST'} isAuthenticated={isAuthenticated}>
+                 <ThemeProvider theme={theme}>
+    <UserDashboard />
+  </ThemeProvider>
               </PrivateRoute>
             }
           />
           <Route 
-            path="/" 
+            path="/user" 
             element={
               isAuthenticated 
                 ? (userRole === 'ADMIN' 
@@ -47,7 +67,7 @@ function App() {
             } 
           />
         </Routes>
-      </Layout>
+      {/* </Layout> */}
     </Router>
   );
 }

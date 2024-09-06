@@ -1,5 +1,5 @@
 {
-  "name": "hiv-prediction-bot",
+  "name": "valens-hair-fn",
   "version": "0.1.0",
   "private": true,
   "dependencies": {
@@ -9,6 +9,7 @@
     "@heroicons/react": "^2.1.4",
     "@mui/icons-material": "^5.15.21",
     "@mui/material": "^5.15.21",
+    "@mui/styles": "^6.0.2",
     "axios": "^1.7.2",
     "cra-template": "1.2.0",
     "file-saver": "^2.0.5",

@@ -1,106 +1,50 @@
-import React, { useState, useEffect } from 'react';
-import axios from 'axios';
-import { FaHeartbeat, FaCalendarAlt, FaClock, FaPills, FaChartLine, FaCalendarCheck } from 'react-icons/fa';
+import React, { useState } from 'react';
+import { FaBars, FaSignOutAlt, FaBell } from 'react-icons/fa';
+import Sidebar from '../components/userDashboard/Sidebar';
+import Profile from '../components/userDashboard/Profile';
+import Bookings from '../components/userDashboard/Bookings';
+import Payments from '../components/userDashboard/Payments';
+import Comments from '../components/userDashboard/Comments.js';
+import Home from '../components/userDashboard/Home';
+import Notifications from '../components/userDashboard/Notifications';
 
 const UserDashboard = () => {
-  const [userData, setUserData] = useState(null);
+  const [activeTab, setActiveTab] = useState('home');
+  const [showSidebar, setShowSidebar] = useState(false);
+  const [showNotifications, setShowNotifications] = useState(false);
 
-  useEffect(() => {
-    const fetchUserData = async () => {
-      try {
-        const response = await axios.get(`${process.env.REACT_APP_API_URL}/api/user/current`, {
-          headers: {
-            'Authorization': `Bearer ${localStorage.getItem('token')}`
-          }
-        });
-        setUserData(response.data);
-      } catch (error) {
-        console.error('Error fetching user data:', error);
-      }
-    };
-
-    fetchUserData();
-  }, []);
-
-  if (!userData) {
-    return <div>Loading...</div>;
-  }
-  const calculateDaysOnArt = () => {
-    if (!userData.onArtDrugs || !userData.timeStartedArt) return 'N/A';
-    const startDate = new Date(userData.timeStartedArt);
-    const today = new Date();
-    const diffTime = Math.abs(today - startDate);
-    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-    return `${diffDays} days`;
+  const handleLogout = () => {
+    localStorage.removeItem('token');
+    // Add redirect logic after logout
   };
 
-  const  predictedRemainingLifetime=userData.predictedLifespan-userData.age
-  // const timeCaughtVirus = new Date(userData.timeCaughtVirus);
-  const predictedYearOfDeath = 2024 + predictedRemainingLifetime;
-
-  // const predictedYearOfDeath = userData.getTimeCaughtVirus().getYear() + predictedRemainingLifetime;
+  const toggleNotifications = () => {
+    setShowNotifications(!showNotifications);
+  };
 
   return (
-    <div className="bg-white shadow rounded-lg p-6">
-      <h2 className="text-2xl font-bold mb-4">Welcome, {userData.firstName} {userData.lastName}!</h2>
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="bg-blue-100 p-4 rounded-lg">
-          <h3 className="font-bold text-lg mb-2 flex items-center">
-            <FaHeartbeat className="mr-2" /> Health Status
-          </h3>
-          <p className="text-3xl font-bold">{userData.hivPositive ? 'HIV+' : 'HIV-'}</p>
-        </div>
-        <div className="bg-green-100 p-4 rounded-lg">
-          <h3 className="font-bold text-lg mb-2 flex items-center">
-            <FaCalendarAlt className="mr-2" /> Age
-          </h3>
-          <p className="text-3xl font-bold">{userData.age} years</p>
-        </div>
-        <div className="bg-yellow-100 p-4 rounded-lg">
-          <h3 className="font-bold text-lg mb-2 flex items-center">
-            <FaClock className="mr-2" /> Time Since Diagnosis
-          </h3>
-          <p className="text-3xl font-bold">
-            {userData.timeCaughtVirus ? new Date(userData.timeCaughtVirus).toLocaleDateString() : 'N/A'}
-          </p>
-        </div>
-        <div className="bg-purple-100 p-4 rounded-lg">
-          <h3 className="font-bold text-lg mb-2 flex items-center">
-            <FaPills className="mr-2" /> ART Status
-          </h3>
-          <p className="text-3xl font-bold">{userData.onArtDrugs ? 'On ART' : 'Not on ART'}</p>
-          {userData.onArtDrugs && userData.timeStartedArt && (
-            <p>Started: {new Date(userData.timeStartedArt).toLocaleDateString()}</p>
-          )}
-        </div>
-      </div>
-      <div className="mt-6">
-        <h3 className="font-bold text-lg mb-2 flex items-center">
-          <FaChartLine className="mr-2" /> Your Health Insights
-        </h3>
-        <ul className="list-disc list-inside">
-          <li className="flex items-center">
-            <FaCalendarCheck className="mr-2" /> Predicted life expectancy: {userData.predictedLifespan} years
-          </li>
-          <li className="flex items-center">
-            <FaCalendarCheck className="mr-2" /> Predicted remainingLifeTime: {predictedRemainingLifetime} years
-          </li>
-          <li className="flex items-center">
-            <FaCalendarCheck className="mr-2" /> Predicted year of death: {predictedYearOfDeath} years
-          </li>
-          <li className="flex items-center mt-2">
-            <FaCalendarAlt className="mr-2" /> Days on ART: {calculateDaysOnArt()}
-          </li>
-        </ul>
-      </div>
-      <div className="mt-6 bg-indigo-100 p-4 rounded-lg">
-        <h3 className="font-bold text-lg mb-2">Health Advice</h3>
-        <p>
-          Remember to take your medications regularly as prescribed. Consistent adherence to your
-          ART regimen can significantly improve your health outcomes and increase your chances of
-          living a longer, healthier life. If you have any concerns or side effects, please consult
-          your healthcare provider.
-        </p>
+    <div className="flex h-screen">
+      <Sidebar activeTab={activeTab} onTabChange={setActiveTab} showSidebar={showSidebar} />
+
+      <div className="flex-1 flex flex-col">
+        <header className="bg-slate-600 text-white p-4 flex justify-between items-center">
+          <FaBars className="md:hidden block cursor-pointer" onClick={() => setShowSidebar(!showSidebar)} />
+          <h1 className="text-2xl font-semibold">User Dashboard</h1>
+          <div className="flex items-center">
+            <FaBell className="cursor-pointer mr-4" onClick={toggleNotifications} />
+            <FaSignOutAlt className="cursor-pointer" onClick={handleLogout} />
+          </div>
+        </header>
+
+        <Notifications isOpen={showNotifications} onClose={toggleNotifications} />
+
+        <main className="flex-1 bg-gray-100 p-6">
+          {activeTab === 'home' && <Home />}
+          {activeTab === 'profile' && <Profile />}
+          {activeTab === 'bookings' && <Bookings />}
+          {activeTab === 'payments' && <Payments />}
+          {activeTab === 'comments' && <Comments />}
+        </main>
       </div>
     </div>
   );

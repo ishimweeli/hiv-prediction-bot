@@ -1,43 +1,19 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import axios from 'axios';
-import { Alert, Snackbar } from '@mui/material';
-
-const Loader = () => (
-  <div className="fixed top-0 left-0 w-full h-full flex items-center justify-center bg-gray-900 bg-opacity-50 z-50">
-    <div className="animate-spin rounded-full h-32 w-32 border-t-2 border-b-2 border-blue-500"></div>
-  </div>
-);
-
-const DateInput = ({ label, value, onChange, disabled }) => (
-  <div>
-    <label className="block text-gray-700 text-sm font-bold mb-2">{label}</label>
-    <input
-      type="date"
-      value={value}
-      onChange={onChange}
-      disabled={disabled}
-      className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
-    />
-  </div>
-);
+import { Snackbar, Alert } from '@mui/material';
+import Header from '../components/Header';
+import Footer from '../components/Footer';
 
 const Register = () => {
-  const [firstName, setFirstName] = useState('');
-  const [lastName, setLastName] = useState('');
-  const [age, setAge] = useState(1);
-  const [hivPositive, setHivPositive] = useState(false);
-  const [timeCaughtVirus, setTimeCaughtVirus] = useState('');
-  const [onArtDrugs, setOnArtDrugs] = useState(false);
-  const [timeStartedArt, setTimeStartedArt] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [alertOpen, setAlertOpen] = useState(false);
-  const [alertMessage, setAlertMessage] = useState('');
-  const [alertSeverity, setAlertSeverity] = useState('success');
-  const [isLoading, setIsLoading] = useState(false);
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [role, setRole] = useState('STYLIST');
+  const [error, setError] = useState('');
+  const [openSnackbar, setOpenSnackbar] = useState(false);
   const [token, setToken] = useState('');
-
+  const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -48,9 +24,8 @@ const Register = () => {
       setToken(tokenFromUrl);
       validateToken(tokenFromUrl);
     } else {
-      setAlertMessage('No invitation token provided');
-      setAlertSeverity('error');
-      setAlertOpen(true);
+      setError('No invitation token provided');
+      setOpenSnackbar(true);
     }
   }, [location]);
 
@@ -60,192 +35,138 @@ const Register = () => {
       setEmail(response.data.email);
     } catch (error) {
       const errorMessage = error.response?.data?.error || error.response?.data || error.message || 'Invalid or expired token';
-      setAlertMessage(errorMessage);
-      setAlertSeverity('error');
-      setAlertOpen(true);
+      setError(errorMessage);
+      setOpenSnackbar(true);
     }
+  };
+
+  const handleCloseSnackbar = () => {
+    setOpenSnackbar(false);
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setIsLoading(true);
-
-    if (hivPositive && timeCaughtVirus && onArtDrugs && timeStartedArt && new Date(timeStartedArt) < new Date(timeCaughtVirus)) {
-      setAlertMessage('ART start date cannot be earlier than the date the virus was caught.');
-      setAlertSeverity('error');
-      setAlertOpen(true);
-      setIsLoading(false);
+    if (password !== confirmPassword) {
+      setError("Passwords do not match");
+      setOpenSnackbar(true);
       return;
     }
 
-    const userData = {
-      firstName,
-      lastName,
-      age,
-      hivPositive,
-      timeCaughtVirus: hivPositive ? timeCaughtVirus : null,
-      onArtDrugs: hivPositive && onArtDrugs,
-      timeStartedArt: hivPositive && onArtDrugs ? timeStartedArt : null,
-      email,
-      password,
-      role: 'DATA_USER',
-    };
+    setLoading(true);
 
     try {
-      const response = await axios.post(
-        `${process.env.REACT_APP_API_URL}/api/auth/register?token=${token}`,
-        userData
-      );
-      const successMessage = response.data.message || 'Registration successful!';
-      setAlertMessage(successMessage);
-      setAlertSeverity('success');
-      setAlertOpen(true);
-      setTimeout(() => {
-        navigate('/login');
-      }, 3000);
-    } catch (error) {
-      const errorMessage = error.response?.data?.error || error.response?.data || error.message || 'An error occurred during registration';
-      setAlertMessage(errorMessage);
-      setAlertSeverity('error');
-      setAlertOpen(true);
-    } finally {
-      setIsLoading(false);
-    }
-  };
+      const response = await axios.post(`${process.env.REACT_APP_API_URL}/api/auth/register?token=${token}`, {
+        email,
+        password,
+        role,
+      });
 
-  const handleCloseAlert = (event, reason) => {
-    if (reason === 'clickaway') {
-      return;
+      setLoading(false);
+
+      if (response.status === 200) {
+        navigate('/login');
+      } else {
+        setError(response.data.message || 'Registration failed. Please try again.');
+        setOpenSnackbar(true);
+      }
+    } catch (error) {
+      setLoading(false);
+      setError('An error occurred. Please try again.');
+      setOpenSnackbar(true);
     }
-    setAlertOpen(false);
   };
 
   return (
-    <div className="max-w-md mx-auto bg-white shadow-md rounded px-8 pt-6 pb-8 mb-4 relative">
-      {isLoading && <Loader />}
-      <h2 className="text-2xl font-bold mb-6 text-center">Register</h2>
-      <form onSubmit={handleSubmit} className="space-y-4">
-        <div>
-          <label htmlFor="firstName" className="block text-gray-700 text-sm font-bold mb-2">First Name</label>
-          <input
-            type="text"
-            id="firstName"
-            value={firstName}
-            onChange={(e) => setFirstName(e.target.value)}
-            className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
-            required
-          />
-        </div>
-        <div>
-          <label htmlFor="lastName" className="block text-gray-700 text-sm font-bold mb-2">Last Name</label>
-          <input
-            type="text"
-            id="lastName"
-            value={lastName}
-            onChange={(e) => setLastName(e.target.value)}
-            className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
-            required
-          />
-        </div>
-        <div>
-          <label htmlFor="age" className="block text-gray-700 text-sm font-bold mb-2">Age</label>
-          <input
-            type="number"
-            id="age"
-            value={age}
-            onChange={(e) => setAge(Math.max(1, Number(e.target.value)))}
-            min="1"
-            className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
-            required
-          />
-        </div>
-        <div>
-          <label className="block text-gray-700 text-sm font-bold mb-2">HIV Positive</label>
-          <div className="flex items-center">
-            <input
-              type="checkbox"
-              checked={hivPositive}
-              onChange={(e) => {
-                setHivPositive(e.target.checked);
-                if (!e.target.checked) {
-                  setOnArtDrugs(false);
-                  setTimeCaughtVirus('');
-                  setTimeStartedArt('');
-                }
-              }}
-              className="mr-2"
-            />
-            <span>Yes</span>
-          </div>
-        </div>
-        {hivPositive && (
-          <DateInput
-            label="Time Caught Virus"
-            value={timeCaughtVirus}
-            onChange={(e) => setTimeCaughtVirus(e.target.value)}
-          />
-        )}
-        {hivPositive && (
-          <div>
-            <label className="block text-gray-700 text-sm font-bold mb-2">On ART Drugs</label>
-            <div className="flex items-center">
+    <div className="min-h-screen flex flex-col">
+      <Header />
+      <div className="flex-grow flex items-center justify-center bg-gray-100">
+        <div className="max-w-md w-full bg-white shadow-md rounded px-8 pt-6 pb-8 mb-4">
+          <h2 className="text-2xl font-bold mb-6 text-center text-gray-800">Register</h2>
+          <form onSubmit={handleSubmit} className="space-y-6">
+            <div>
+              <label htmlFor="email" className="block text-gray-700 text-sm font-bold mb-2">Email</label>
               <input
-                type="checkbox"
-                checked={onArtDrugs}
-                onChange={(e) => {
-                  setOnArtDrugs(e.target.checked);
-                  if (!e.target.checked) {
-                    setTimeStartedArt('');
-                  }
-                }}
-                className="mr-2"
+                type="email"
+                id="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+                required
+                readOnly
               />
-              <span>Yes</span>
             </div>
-          </div>
-        )}
-        {hivPositive && onArtDrugs && (
-          <DateInput
-            label="Time Started ART"
-            value={timeStartedArt}
-            onChange={(e) => setTimeStartedArt(e.target.value)}
-          />
-        )}
-        <div>
-          <label htmlFor="email" className="block text-gray-700 text-sm font-bold mb-2">Email</label>
-          <input
-            type="email"
-            id="email"
-            value={email}
-            className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
-            required
-            readOnly
-          />
+            <div>
+              <label htmlFor="password" className="block text-gray-700 text-sm font-bold mb-2">Password</label>
+              <input
+                type="password"
+                id="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+                required
+              />
+            </div>
+            <div>
+              <label htmlFor="confirmPassword" className="block text-gray-700 text-sm font-bold mb-2">Confirm Password</label>
+              <input
+                type="password"
+                id="confirmPassword"
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+                required
+              />
+            </div>
+            <div>
+              <label htmlFor="role" className="block text-gray-700 text-sm font-bold mb-2">Role</label>
+              <input
+                type="text"
+                id="role"
+                value={role}
+                onChange={(e) => setRole(e.target.value)}
+                className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+                readOnly
+              />
+            </div>
+            <button
+              type="submit"
+              className="w-full bg-red-500 hover:bg-red-600 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline relative"
+              disabled={loading}
+            >
+              {loading ? (
+                <>
+                  <span className="opacity-0">Register</span>
+                  <div className="absolute inset-0 flex items-center justify-center">
+                    <div className="loader"></div>
+                  </div>
+                </>
+              ) : (
+                'Register'
+              )}
+            </button>
+          </form>
+          <Snackbar open={openSnackbar} autoHideDuration={6000} onClose={handleCloseSnackbar}>
+            <Alert onClose={handleCloseSnackbar} severity="error" sx={{ width: '100%' }}>
+              {error}
+            </Alert>
+          </Snackbar>
         </div>
-        <div>
-          <label htmlFor="password" className="block text-gray-700 text-sm font-bold mb-2">Password</label>
-          <input
-            type="password"
-            id="password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
-            required
-          />
-        </div>
-        <button 
-          type="submit" 
-          className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline"
-          disabled={isLoading}
-        >
-          {isLoading ? 'Registering...' : 'Register'}
-        </button>
-      </form>
-      <Snackbar open={alertOpen} autoHideDuration={6000} onClose={handleCloseAlert}>
-        <Alert onClose={handleCloseAlert} severity={alertSeverity}>
-          {typeof alertMessage === 'string' ? alertMessage : JSON.stringify(alertMessage)}
-        </Alert>
-      </Snackbar>
+      </div>
+      <Footer />
+      <style jsx>{`
+        .loader {
+          border: 3px solid #f3f3f3;
+          border-top: 3px solid #3498db;
+          border-radius: 50%;
+          width: 24px;
+          height: 24px;
+          animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+          0% { transform: rotate(0deg); }
+          100% { transform: rotate(360deg); }
+        }
+      `}</style>
     </div>
   );
 };
