@@ -20,12 +20,28 @@ import {
   useMediaQuery,
   useTheme,
   MobileStepper,
-  Snackbar
+  Snackbar,
+  MenuItem,
+  Select,
+  FormControl,
+  InputLabel
 } from '@mui/material';
 import Header from './Header';
 import Footer from './Footer';
+import cities from 'list-of-us-cities';
 
 const API_URL = process.env.REACT_APP_API_URL;
+
+const services = [
+  "Haircut", "Hair Coloring", "Hair Styling", "Shampoo and Conditioning",
+  "Blow-Dry", "Hair Extensions", "Keratin Treatment", "Perming",
+  "Relaxing", "Scalp Treatment", "Braiding", "Updos",
+  "Beard Trimming", "Hair Weaving", "Balayage", "Ombre Coloring",
+  "Deep Conditioning Treatment", "Hot Oil Treatment", "Hair Straightening",
+  "Dreadlock Maintenance", "Nail Manicure", "Nail Pedicure",
+  "Acrylic Nails", "Gel Nails", "Nail Art", "Nail Extensions",
+  "French Manicure", "Nail Polish Application", "Paraffin Treatment", "Cuticle Care"
+];
 
 const BookingProcess = () => {
   const theme = useTheme();
@@ -40,6 +56,7 @@ const BookingProcess = () => {
   const [clientEmail, setClientEmail] = useState('');
   const [clientPhoneNumber, setClientPhoneNumber] = useState('');
   const [bookingTime, setBookingTime] = useState('');
+  const [streetNumber, setStreetNumber] = useState('');
   const [loading, setLoading] = useState(false);
   const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'info' });
   const [bookingDialogOpen, setBookingDialogOpen] = useState(false);
@@ -80,7 +97,7 @@ const BookingProcess = () => {
 
   const handleStylistSelect = (stylist) => {
     setSelectedStylist(stylist);
-    console.log('Stylist selected: ', stylist)
+    console.log('Stylist selected: ', stylist);
     handleNext();
   };
 
@@ -91,22 +108,22 @@ const BookingProcess = () => {
         clientName,
         clientEmail,
         clientPhoneNumber,
-        stylist: { id: selectedStylist.user.id },
+        stylist: selectedStylist,
         bookingTime,
         service,
         location,
-        status: 'PENDING'
+        streetNumber
+       
       };
-     
+      console.log(selectedStylist.user);
+      console.log('Booking data being sent:', bookingData);
       const response = await axios.post(`${API_URL}/api/booking`, bookingData, {
-        
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('token')}`,
           'Content-Type': 'application/json',
         },
       });
-      console.log(bookingData)
-      console.log(response);
+      console.log('Response from booking:', response);
       if (response.status === 200 || response.status === 201) {
         setSnackbar({ open: true, message: 'Booking successful!', severity: 'success' });
         handleNext();
@@ -114,7 +131,12 @@ const BookingProcess = () => {
         throw new Error('Booking failed');
       }
     } catch (error) {
-      setSnackbar({ open: true, message: 'Booking failed. Please try again.', severity: 'error' });
+      console.error('Booking error:', error);
+      setSnackbar({ 
+        open: true, 
+        severity: 'error',
+        message: error.response?.data?.message || error.message || 'An error occurred during booking'
+      });
     } finally {
       setLoading(false);
     }
@@ -143,22 +165,36 @@ const BookingProcess = () => {
       case 0:
         return (
           <Box sx={{ width: '100%' }}>
-            <TextField
-              label="Location"
-              value={location}
-              onChange={(e) => setLocation(e.target.value)}
-              fullWidth
-              margin="normal"
-              required
-            />
-            <TextField
-              label="Service"
-              value={service}
-              onChange={(e) => setService(e.target.value)}
-              fullWidth
-              margin="normal"
-              required
-            />
+            <FormControl fullWidth margin="normal">
+              <InputLabel id="location-label">Location</InputLabel>
+              <Select
+                labelId="location-label"
+                value={location}
+                onChange={(e) => setLocation(e.target.value)}
+                label="Location"
+                required
+              >
+                <MenuItem value="" disabled>Select a city</MenuItem>
+                {cities.map((city) => (
+                  <MenuItem key={city} value={city}>{city}</MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+            <FormControl fullWidth margin="normal">
+              <InputLabel id="service-label">Service</InputLabel>
+              <Select
+                labelId="service-label"
+                value={service}
+                onChange={(e) => setService(e.target.value)}
+                label="Service"
+                required
+              >
+                <MenuItem value="" disabled>Select a service</MenuItem>
+                {services.map((service) => (
+                  <MenuItem key={service} value={service}>{service}</MenuItem>
+                ))}
+              </Select>
+            </FormControl>
             <Button 
               onClick={handleLocationServiceSubmit} 
               variant="contained" 
@@ -221,6 +257,14 @@ const BookingProcess = () => {
               required
             />
             <TextField
+              label="Street Number"
+              value={streetNumber}
+              onChange={(e) => setStreetNumber(e.target.value)}
+              fullWidth
+              margin="normal"
+              required
+            />
+            <TextField
               label="Booking Time"
               type="datetime-local"
               value={bookingTime}
@@ -236,7 +280,7 @@ const BookingProcess = () => {
               onClick={handleBookingSubmit} 
               variant="contained" 
               color="primary"
-              disabled={!clientName || !clientEmail || !clientPhoneNumber || !bookingTime || loading}
+              disabled={!clientName || !clientEmail || !clientPhoneNumber || !streetNumber || !bookingTime || loading}
               fullWidth
               sx={{ mt: 2 }}
             >
@@ -344,6 +388,7 @@ const BookingProcess = () => {
                   <Typography variant="h6">{booking.service}</Typography>
                   <Typography>{new Date(booking.bookingTime).toLocaleString()}</Typography>
                   <Typography>Status: {booking.status}</Typography>
+                  <Typography>Street Number: {booking.streetNumber}</Typography>
                 </CardContent>
               </Card>
             ))}

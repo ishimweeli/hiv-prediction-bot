@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
+import cities from 'list-of-us-cities';
 import { 
   Typography, 
   TextField, 
@@ -11,8 +12,15 @@ import {
   FormControl, 
   InputLabel,
   Chip,
-  CircularProgress
+  CircularProgress,
+  IconButton,
+  List,
+  ListItem,
+  ListItemText,
+  ListItemSecondaryAction
 } from '@mui/material';
+import AddIcon from '@mui/icons-material/Add';
+import DeleteIcon from '@mui/icons-material/Delete';
 
 const API_URL = process.env.REACT_APP_API_URL;
 
@@ -40,6 +48,8 @@ const Profile = () => {
   const [profile, setProfile] = useState(defaultProfile);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [newLocation, setNewLocation] = useState('');
+  const [newService, setNewService] = useState('');
 
   useEffect(() => {
     fetchProfile();
@@ -53,7 +63,6 @@ const Profile = () => {
           Authorization: `Bearer ${localStorage.getItem('token')}`
         }
       });
-      console.log(response);
       setProfile({ ...defaultProfile, ...response.data });
       setError(null);
     } catch (err) {
@@ -73,20 +82,11 @@ const Profile = () => {
     }));
   };
 
-  const handleArrayChange = (event, field) => {
-    const { value } = event.target;
-    setProfile(prevProfile => ({
-      ...prevProfile,
-      [field]: value
-    }));
-  };
-
   const handleSubmit = async (event) => {
     event.preventDefault();
     try {
       setLoading(true);
-      console.log(profile)
-      const data={
+      const data = {
         firstName: profile.firstName,
         lastName: profile.lastName,
         age: profile.age,
@@ -95,15 +95,13 @@ const Profile = () => {
         locations: profile.locations,
         services: profile.services,
         streetNumber: profile.streetNumber,
-      }
-      console.log(data)
+      };
       await axios.put(`${API_URL}/api/profile`, data, {
         headers: {
           Authorization: `Bearer ${localStorage.getItem('token')}`
         }
       });
-    //   setIsEditing(false);
-    //   fetchProfile(); // Reload the profile after update
+      setIsEditing(false);
     } catch (err) {
       setError('Failed to update profile');
       console.error('Error updating profile:', err);
@@ -113,14 +111,48 @@ const Profile = () => {
   };
 
   const handleEditClick = (event) => {
-    event.preventDefault(); // Prevent form submission
+    event.preventDefault();
     setIsEditing(true);
   };
 
   const handleCancelEdit = (event) => {
-    event.preventDefault(); // Prevent form submission
+    event.preventDefault();
     setIsEditing(false);
-    fetchProfile(); // Revert changes by fetching the profile again
+    fetchProfile();
+  };
+
+  const handleAddLocation = () => {
+    if (newLocation && !profile.locations.includes(newLocation)) {
+      setProfile(prevProfile => ({
+        ...prevProfile,
+        locations: [...prevProfile.locations, newLocation]
+      }));
+      setNewLocation('');
+    }
+  };
+
+  const handleRemoveLocation = (location) => {
+    setProfile(prevProfile => ({
+      ...prevProfile,
+      locations: prevProfile.locations.filter(loc => loc !== location)
+    }));
+  };
+
+  const handleAddService = () => {
+    if (newService && !profile.services.includes(newService)) {
+      setProfile(prevProfile => ({
+        ...prevProfile,
+        services: [...prevProfile.services, newService]
+      }));
+      setNewService('');
+    }
+  };
+
+  const handleRemoveService = (service) => {
+    setProfile(prevProfile => ({
+      ...prevProfile,
+      services: prevProfile.services.filter(serv => serv !== service)
+    }));
   };
 
   if (loading) return <CircularProgress />;
@@ -203,54 +235,97 @@ const Profile = () => {
               disabled={!isEditing}
             />
           </Grid>
-          <Grid item xs={12} sm={6}>
-            <FormControl fullWidth disabled={!isEditing}>
-              <InputLabel>Locations</InputLabel>
-              <Select
-                multiple
-                name="locations"
-                value={profile.locations}
-                onChange={(e) => handleArrayChange(e, 'locations')}
-                renderValue={(selected) => (
-                  <div>
-                    {selected.map((value) => (
-                      <Chip key={value} label={value} />
+          <Grid item xs={12}>
+            <Typography variant="h6">Locations</Typography>
+            {isEditing ? (
+              <>
+                <List>
+                  {profile.locations.map((location) => (
+                    <ListItem key={location}>
+                      <ListItemText primary={location} />
+                      <ListItemSecondaryAction>
+                        <IconButton edge="end" aria-label="delete" onClick={() => handleRemoveLocation(location)}>
+                          <DeleteIcon />
+                        </IconButton>
+                      </ListItemSecondaryAction>
+                    </ListItem>
+                  ))}
+                </List>
+                <FormControl fullWidth>
+                  <Select
+                    value={newLocation}
+                    onChange={(e) => setNewLocation(e.target.value)}
+                    displayEmpty
+                  >
+                    <MenuItem value="" disabled>Select a city</MenuItem>
+                    {cities.map((city) => (
+                      <MenuItem key={city} value={city}>{city}</MenuItem>
                     ))}
-                  </div>
-                )}
-              >
-                {["New York", "Los Angeles", "Chicago", "Houston"].map((name) => (
-                  <MenuItem key={name} value={name}>
-                    {name}
-                  </MenuItem>
-                ))}
-              </Select>
-            </FormControl>
+                  </Select>
+                </FormControl>
+                <Button
+                  startIcon={<AddIcon />}
+                  onClick={handleAddLocation}
+                  disabled={!newLocation}
+                >
+                  Add Location
+                </Button>
+              </>
+            ) : (
+              <Typography>{profile.locations.join(', ')}</Typography>
+            )}
           </Grid>
-          <Grid item xs={12} sm={6}>
-            <FormControl fullWidth disabled={!isEditing}>
-              <InputLabel>Services</InputLabel>
-              <Select
-                multiple
-                name="services"
-                value={profile.services}
-                onChange={(e) => handleArrayChange(e, 'services')}
-                renderValue={(selected) => (
-                  <div>
-                    {selected.map((value) => (
-                      <Chip key={value} label={value} />
+
+          <Grid item xs={12}>
+            <Typography variant="h6">Services</Typography>
+            {isEditing ? (
+              <>
+                <List>
+                  {profile.services.map((service) => (
+                    <ListItem key={service}>
+                      <ListItemText primary={service} />
+                      <ListItemSecondaryAction>
+                        <IconButton edge="end" aria-label="delete" onClick={() => handleRemoveService(service)}>
+                          <DeleteIcon />
+                        </IconButton>
+                      </ListItemSecondaryAction>
+                    </ListItem>
+                  ))}
+                </List>
+                <FormControl fullWidth>
+                  <Select
+                    value={newService}
+                    onChange={(e) => setNewService(e.target.value)}
+                    displayEmpty
+                  >
+                    <MenuItem value="" disabled>Select a service</MenuItem>
+                    {[
+                      "Haircut", "Hair Coloring", "Hair Styling", "Shampoo and Conditioning",
+                      "Blow-Dry", "Hair Extensions", "Keratin Treatment", "Perming",
+                      "Relaxing", "Scalp Treatment", "Braiding", "Updos",
+                      "Beard Trimming", "Hair Weaving", "Balayage", "Ombre Coloring",
+                      "Deep Conditioning Treatment", "Hot Oil Treatment", "Hair Straightening",
+                      "Dreadlock Maintenance", "Nail Manicure", "Nail Pedicure",
+                      "Acrylic Nails", "Gel Nails", "Nail Art", "Nail Extensions",
+                      "French Manicure", "Nail Polish Application", "Paraffin Treatment", "Cuticle Care"
+                    ].map((service) => (
+                      <MenuItem key={service} value={service}>{service}</MenuItem>
                     ))}
-                  </div>
-                )}
-              >
-                {["Cleaning", "Gardening", "Plumbing", "Electrical"].map((name) => (
-                  <MenuItem key={name} value={name}>
-                    {name}
-                  </MenuItem>
-                ))}
-              </Select>
-            </FormControl>
+                  </Select>
+                </FormControl>
+                <Button
+                  startIcon={<AddIcon />}
+                  onClick={handleAddService}
+                  disabled={!newService}
+                >
+                  Add Service
+                </Button>
+              </>
+            ) : (
+              <Typography>{profile.services.join(', ')}</Typography>
+            )}
           </Grid>
+
           <Grid item xs={12}>
             {!isEditing ? (
               <Button variant="contained" color="primary" type="submit">
