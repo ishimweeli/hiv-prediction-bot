@@ -108,7 +108,7 @@ const BookingProcess = () => {
         clientName,
         clientEmail,
         clientPhoneNumber,
-        stylist: selectedStylist,
+        stylist: selectedStylist.user,
         bookingTime,
         service,
         location,
